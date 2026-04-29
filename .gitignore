@@ -1,0 +1,47 @@
+# Build outputs
+bin/
+obj/
+
+# Visual Studio / VS Code / Rider
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet / .NET tooling
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Core config (often contains secrets on dev machines)
+appsettings.json
+appsettings.Development.json
+development.json
+
+# User secrets (file system store)
+**/secrets.json
+
+# Certificates / keys
+*.pfx
+*.pem
+*.key
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+
+# Logs
+*.log
+logs/
+
+# Frontend (in case the repo root is used)
+frontend/node_modules/
+frontend/dist/
