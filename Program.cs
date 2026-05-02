@@ -11,6 +11,7 @@ var jwtSettings = builder.Configuration.GetSection("Jwt"); //Get all related set
 var issuer = jwtSettings["Issuer"];
 var audience = jwtSettings["Audience"];
 var key = jwtSettings["Key"];
+// Telling EF how to build these services
 builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<TokenService>();
 //This is done to resolve the warning

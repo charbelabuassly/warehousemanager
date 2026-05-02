@@ -22,7 +22,6 @@ namespace warehousemanager.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder) //used for manual configurations
         {
             // Map to existing SQL table name in your DB.
-            // Your database uses underscore-prefixed table names (e.g. `_users`, `_orders`, `_prodcust`).
             modelBuilder.Entity<Products>().ToTable("_prodcust");
 
             // -----------------------

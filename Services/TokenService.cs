@@ -22,7 +22,7 @@ namespace warehousemanager.Services
             {
                 // We are securely grabbing the key from the application.json
                 var key = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+                    Encoding.UTF8.GetBytes(_config["Jwt:Key"]!)); //getting the key from the config (appsettings) and encoding it to be used by the hashing algo for signing the token
                 // creds, this provides 
                 var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256); //This object contains the instructions for generating the sign of the payload
 
@@ -61,6 +61,19 @@ namespace warehousemanager.Services
                 return false;
             }
             if (user.RoleId != 2)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public bool VerifyDelivery(Users user)
+        {
+            if (user == null)
+            {
+                return false;
+            }
+            if (user.RoleId != 3)
             {
                 return false;
             }
