@@ -10,6 +10,7 @@ namespace warehousemanager.Models
         public int ClientId { get; set; }    //fk
         public int DeliveryPersonId { get; set; } //fk
         public DateTime Schedule { get; set; } // Date order submitted
+        public DateTime? DateDelivered { get; set; }
         public Users Client { get; set; } = null!;
         public Users DeliveryPerson { get; set; } = null!;
         public OrderStaus status { get; set; } = OrderStaus.Pending;
@@ -18,7 +19,7 @@ namespace warehousemanager.Models
         public string Street { get; set; } = null!;
         public string City { get; set; } = null!;
         public string Country { get; set; } = null!;
-        //public ICollection<OrderItems> OrderItems { get; } = new List<OrderItems>(); // This is used for building the relationship
+        public ICollection<OrderItems> OrderItems { get; } = new List<OrderItems>(); // This is used for building the relationship
 
     }
 }

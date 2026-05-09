@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Hosting;
 using System.Security.Claims;
 
 namespace warehousemanager.Controllers.website
@@ -17,14 +16,12 @@ namespace warehousemanager.Controllers.website
     public class ShopController : ControllerBase
     {
         private readonly LogisticContext _context;
-        private readonly ILogger<ShopController> _logger;
-        private readonly IHostEnvironment _env;
+        private readonly TokenService _token;
 
-        public ShopController(LogisticContext context, ILogger<ShopController> logger, IHostEnvironment env)
+        public ShopController(LogisticContext context, TokenService token)
         {
             _context = context;
-            _logger = logger;
-            _env = env;
+            _token = token;
         }
 
         // GET: api/Product -> All products will be displayed on the website
@@ -41,6 +38,8 @@ namespace warehousemanager.Controllers.website
                 var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
                 if (user == null) return Unauthorized(new { Message = "User not found" });
 
+                if (!_token.VerifyClient(user)) return Unauthorized(new { Message = "You are not authorized" });
+
                 var products = await _context._products
                     .AsNoTracking()
                     .Include(p => p.category)
@@ -50,11 +49,10 @@ namespace warehousemanager.Controllers.website
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch shop products");
                 return StatusCode(500, new
                 {
                     Message = "Failed to load products",
-                    Detail = _env.IsDevelopment() ? ex.Message : null
+                    Detail = ex.Message
                 });
             }
         }
@@ -73,6 +71,8 @@ namespace warehousemanager.Controllers.website
                 var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
                 if (user == null) return Unauthorized(new { Message = "User not found" });
 
+                if (!_token.VerifyClient(user)) return Unauthorized(new { Message = "You are not authorized" });
+
                 var product = await _context._products
                     .AsNoTracking()
                     .Include(p => p.category)
@@ -83,11 +83,10 @@ namespace warehousemanager.Controllers.website
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch product {ProductId}", id);
                 return StatusCode(500, new
                 {
                     Message = "Failed to load product",
-                    Detail = _env.IsDevelopment() ? ex.Message : null
+                    Detail = ex.Message
                 });
             }
         }
@@ -105,6 +104,8 @@ namespace warehousemanager.Controllers.website
                 var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
                 if (user == null) return Unauthorized(new { Message = "User not found" });
 
+                if (!_token.VerifyClient(user)) return Unauthorized(new { Message = "You are not authorized" });
+
                 var products = await _context._products
                     .AsNoTracking()
                     .Include(p => p.category)
@@ -115,11 +116,10 @@ namespace warehousemanager.Controllers.website
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch products by category {CategoryId}", CategoryId);
                 return StatusCode(500, new
                 {
                     Message = "Failed to load products",
-                    Detail = _env.IsDevelopment() ? ex.Message : null
+                    Detail = ex.Message
                 });
             }
         }
@@ -135,6 +135,8 @@ namespace warehousemanager.Controllers.website
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
             if (user == null) return BadRequest();
+
+            if (!_token.VerifyClient(user)) return Unauthorized(new { Message = "You are not authorized" });
 
             var query = _context._products.AsQueryable(); //This allows us to query the products to our liking
 
@@ -163,4 +165,3 @@ namespace warehousemanager.Controllers.website
         }
     }
 }
-

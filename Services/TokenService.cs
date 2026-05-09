@@ -80,5 +80,18 @@ namespace warehousemanager.Services
             return true;
         }
 
+        public bool VerifyClient(Users user)
+        {
+            if (user == null)
+            {
+                return false;
+            }
+            if (user.RoleId != 1)
+            {
+                return false;
+            }
+            return true;
+        }
+
     }
 }

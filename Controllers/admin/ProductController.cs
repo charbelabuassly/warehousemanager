@@ -5,7 +5,6 @@ using warehousemanager.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using System.Security.Claims;
 
 namespace warehousemanager.Controllers.admin
@@ -16,13 +15,11 @@ namespace warehousemanager.Controllers.admin
     {
         private readonly LogisticContext _context;
         private readonly TokenService _token;
-        private readonly IHostEnvironment _env;
 
-        public ProductController(LogisticContext context, TokenService token, IHostEnvironment env)
+        public ProductController(LogisticContext context, TokenService token)
         {
             _context = context;
             _token = token;
-            _env = env;
         }
 
         // GET: api/Product
@@ -55,7 +52,7 @@ namespace warehousemanager.Controllers.admin
                 return StatusCode(500, new
                 {
                     Message = "Failed to load products",
-                    Detail = _env.IsDevelopment() ? ex.Message : null
+                    Detail = ex.Message
                 });
             }
         }
@@ -148,7 +145,7 @@ namespace warehousemanager.Controllers.admin
                 return StatusCode(500, new
                 {
                     Message = "Failed to load product",
-                    Detail = _env.IsDevelopment() ? ex.Message : null
+                    Detail = ex.Message
                 });
             }
         }

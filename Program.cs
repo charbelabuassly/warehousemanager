@@ -14,6 +14,7 @@ var key = jwtSettings["Key"];
 // Telling EF how to build these services
 builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<Scheduler>();
 //This is done to resolve the warning
 if (string.IsNullOrEmpty(key))
 {
