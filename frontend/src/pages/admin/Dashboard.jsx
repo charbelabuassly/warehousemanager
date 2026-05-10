@@ -27,7 +27,7 @@ const Dashboard = () => {
         products: api.get('/Product'),
         categories: api.get('/Category'),
         users: api.get('/AccountManagement'),
-        orders: api.get('/Order'),
+        orders: api.get('/admin/Order'),
         roles: api.get('/Role'),
       };
 
@@ -187,4 +187,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

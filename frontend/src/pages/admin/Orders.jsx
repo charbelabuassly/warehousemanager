@@ -23,9 +23,9 @@ const Orders = () => {
   }, [view]);
 
   const getOrdersEndpoint = () => {
-    if (view === 'assigned') return '/Order';
-    if (view === 'delivered') return '/Order/delivered';
-    return '/Order/pending-cancelled';
+    if (view === 'assigned') return '/admin/Order';
+    if (view === 'delivered') return '/admin/Order/delivered';
+    return '/admin/Order/pending-cancelled';
   };
 
   const fetchOrders = async () => {
@@ -54,7 +54,7 @@ const Orders = () => {
       if (searchFilters.from) params.from = searchFilters.from;
       if (searchFilters.to) params.to = searchFilters.to;
 
-      const res = await api.get('/Order/search', { params });
+      const res = await api.get('/admin/Order/search', { params });
       let normalizedData = Array.isArray(res.data) ? res.data : 
         (res.data?.$values ? res.data.$values : []);
       setOrders(normalizedData);
@@ -69,7 +69,7 @@ const Orders = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this order?')) return;
     try {
-      await api.delete(`/Order/${id}`);
+      await api.delete(`/admin/Order/${id}`);
       fetchOrders();
     } catch (err) {
       console.error('Error deleting order:', err);
@@ -84,6 +84,13 @@ const Orders = () => {
       setIsModalOpen(true);
       return;
     }
+
+    const s = normalizeStatus(order.status ?? order.Status);
+    if (s === 'Cancelled' || s === 'Assigned') {
+      alert('Only pending orders can be modified.');
+      return;
+    }
+
     setEditingOrder(order);
     setFormData(order || {});
     setIsModalOpen(true);
@@ -96,22 +103,41 @@ const Orders = () => {
         const id = editingOrder.ordersId || editingOrder.OrdersId || editingOrder.id || editingOrder.Id;
         const normalized = {
           clientId: formData.clientId ?? formData.ClientId,
-          deliveryPersonId: formData.deliveryPersonId ?? formData.DeliveryPersonId,
+          deliveryPersonId: (() => {
+            const raw = formData.deliveryPersonId ?? formData.DeliveryPersonId;
+            const num = typeof raw === 'string' ? parseInt(raw, 10) : raw;
+            return Number.isFinite(num) ? num : undefined;
+          })(),
           schedule: formData.schedule ?? formData.Schedule
         };
 
-        await api.put(`/Order/${id}`, normalized);
-
         // Status is patched (only for pending/cancelled + assigned views)
-        const nextStatus = (formData.status ?? formData.Status);
+        const nextStatus = normalizeStatus(formData.status ?? formData.Status);
         if (view !== 'delivered' && nextStatus) {
-          await api.patch(`/Order/${id}/status`, {
+          if (nextStatus === 'Assigned' && !Number.isFinite(normalized.deliveryPersonId)) {
+            alert('Delivery Person ID is required to assign an order');
+            return;
+          }
+
+          await api.patch(`/admin/Order/${id}/status`, {
             status: nextStatus,
             deliveryPersonId: normalized.deliveryPersonId
           });
         }
+
+        // Persist other editable fields (keep it after status patch so assignment rules apply)
+        const desiredDeliveryPersonId =
+          nextStatus === 'Pending' || nextStatus === 'Cancelled'
+            ? -1
+            : (normalized.deliveryPersonId ?? (editingOrder.deliveryPersonId ?? editingOrder.DeliveryPersonId));
+
+        await api.put(`/admin/Order/${id}`, {
+          clientId: normalized.clientId,
+          deliveryPersonId: desiredDeliveryPersonId,
+          schedule: normalized.schedule
+        });
       } else {
-        await api.post('/Order', formData);
+        await api.post('/admin/Order', formData);
       }
       setIsModalOpen(false);
       setEditingOrder(null);
@@ -130,13 +156,28 @@ const Orders = () => {
   const getOrderField = (order, field) => {
     const fieldMap = {
       schedule: order.schedule || order.Schedule,
-      status: order.status || order.Status,
+      status: order.status ?? order.Status,
       clientId: order.clientId || order.ClientId,
       deliveryPersonId: order.deliveryPersonId || order.DeliveryPersonId,
-      clientName: order.client?.name || order.client?.Name || order.Client?.name || order.Client?.Name,
-      deliveryPersonName: order.deliveryPerson?.name || order.deliveryPerson?.Name || order.DeliveryPerson?.name || order.DeliveryPerson?.Name
+      clientName:
+        order.client?.fname || order.client?.Fname || order.Client?.fname || order.Client?.Fname
+          ? `${order.client?.fname || order.client?.Fname || order.Client?.fname || order.Client?.Fname} ${order.client?.lname || order.client?.Lname || order.Client?.lname || order.Client?.Lname || ''}`.trim()
+          : (order.client?.email || order.client?.Email || order.Client?.email || order.Client?.Email),
+      deliveryPersonName:
+        order.deliveryPerson?.fname || order.deliveryPerson?.Fname || order.DeliveryPerson?.fname || order.DeliveryPerson?.Fname
+          ? `${order.deliveryPerson?.fname || order.deliveryPerson?.Fname || order.DeliveryPerson?.fname || order.DeliveryPerson?.Fname} ${order.deliveryPerson?.lname || order.deliveryPerson?.Lname || order.DeliveryPerson?.lname || order.DeliveryPerson?.Lname || ''}`.trim()
+          : (order.deliveryPerson?.email || order.deliveryPerson?.Email || order.DeliveryPerson?.email || order.DeliveryPerson?.Email)
     };
     return fieldMap[field];
+  };
+
+  const normalizeStatus = (status) => {
+    if (status === null || status === undefined) return '';
+    if (typeof status === 'string') return status;
+    // Backend may send numeric enums (0..3)
+    const map = ['Pending', 'Assigned', 'Delivered', 'Cancelled'];
+    if (typeof status === 'number' && map[status]) return map[status];
+    return String(status);
   };
 
   const formatDate = (dateString) => {
@@ -151,7 +192,7 @@ const Orders = () => {
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading orders...</div>;
   if (error) return <div style={{ padding: '2rem', color: 'red' }}>Error: {error}</div>;
 
-  const currentFormStatus = formData.status || formData.Status || 'Pending';
+  const currentFormStatus = normalizeStatus(formData.status ?? formData.Status) || 'Pending';
 
   return (
     <div style={{ padding: '2rem' }}>
@@ -284,7 +325,7 @@ const Orders = () => {
               <th style={{ textAlign: 'left', padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Order ID</th>
               <th style={{ textAlign: 'left', padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Client</th>
               <th style={{ textAlign: 'left', padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Delivery Person</th>
-              <th style={{ textAlign: 'left', padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Schedule</th>
+              <th style={{ textAlign: 'left', padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Scheduled Date</th>
               <th style={{ textAlign: 'left', padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Status</th>
               <th style={{ textAlign: 'right', padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Actions</th>
             </tr>
@@ -329,19 +370,21 @@ const Orders = () => {
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     <span className="badge" style={{
-                      background: getOrderField(order, 'status') === 'Delivered' ? 'rgba(34, 197, 94, 0.1)' : 
-                                 getOrderField(order, 'status') === 'Pending' ? 'rgba(250, 204, 21, 0.1)' : 
-                                 'rgba(239, 68, 68, 0.1)',
-                      color: getOrderField(order, 'status') === 'Delivered' ? 'var(--success)' : 
-                             getOrderField(order, 'status') === 'Pending' ? 'var(--warning)' : 
-                             'var(--error)'
+                      background: normalizeStatus(getOrderField(order, 'status')) === 'Delivered' ? 'rgba(34, 197, 94, 0.1)' : 
+                                 normalizeStatus(getOrderField(order, 'status')) === 'Pending' ? 'rgba(250, 204, 21, 0.1)' : 
+                                  'rgba(239, 68, 68, 0.1)',
+                      color: normalizeStatus(getOrderField(order, 'status')) === 'Delivered' ? 'var(--success)' : 
+                             normalizeStatus(getOrderField(order, 'status')) === 'Pending' ? 'var(--warning)' : 
+                              'var(--error)'
                     }}>
-                      {getOrderField(order, 'status') || 'Unknown'}
+                      {normalizeStatus(getOrderField(order, 'status')) || 'Unknown'}
                     </span>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                      {view !== 'delivered' && (
+                      {view !== 'delivered' &&
+                        normalizeStatus(getOrderField(order, 'status')) !== 'Cancelled' &&
+                        normalizeStatus(getOrderField(order, 'status')) !== 'Assigned' && (
                         <button className="btn-icon" onClick={() => handleEdit(order)} title="Update / Assign">
                           <Edit size={16} />
                         </button>
@@ -375,6 +418,11 @@ const Orders = () => {
             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: '700' }}>
               {editingOrder ? 'Edit Order' : 'Add New Order'}
             </h3>
+            {editingOrder && (normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Cancelled' || normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Assigned') && (
+              <div style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                Cancelled/Assigned orders are read-only.
+              </div>
+            )}
             <form onSubmit={handleSave}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
@@ -384,6 +432,7 @@ const Orders = () => {
                     value={formData.clientId || formData.ClientId || ''}
                     onChange={(e) => setFormData({ ...formData, clientId: parseInt(e.target.value) })}
                     required
+                    disabled={!!editingOrder && (normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Cancelled' || normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Assigned')}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -401,6 +450,7 @@ const Orders = () => {
                     value={formData.deliveryPersonId || formData.DeliveryPersonId || ''}
                     onChange={(e) => setFormData({ ...formData, deliveryPersonId: parseInt(e.target.value) })}
                     required={currentFormStatus === 'Assigned'}
+                    disabled={!!editingOrder && (normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Cancelled' || normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Assigned')}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -420,6 +470,7 @@ const Orders = () => {
                     value={formData.schedule || formData.Schedule || ''}
                     onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
                     required
+                    disabled={!!editingOrder && (normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Cancelled' || normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Assigned')}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -434,8 +485,16 @@ const Orders = () => {
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>Status</label>
                   <select
                     value={formData.status || formData.Status || 'Pending'}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    disabled={view === 'delivered'}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const next = { ...formData, status: v };
+                      if (v === 'Pending' || v === 'Cancelled') next.deliveryPersonId = '';
+                      setFormData(next);
+                    }}
+                    disabled={
+                      view === 'delivered' ||
+                      (!!editingOrder && (normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Cancelled' || normalizeStatus(editingOrder.status ?? editingOrder.Status) === 'Assigned'))
+                    }
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -450,7 +509,9 @@ const Orders = () => {
                     ) : (
                       <>
                         <option value="Pending">Pending</option>
-                        <option value="Assigned">Assigned</option>
+                        <option value="Assigned" disabled={normalizeStatus(editingOrder?.status ?? editingOrder?.Status) === 'Cancelled'}>
+                          Assigned
+                        </option>
                         <option value="Cancelled">Cancelled</option>
                       </>
                     )}

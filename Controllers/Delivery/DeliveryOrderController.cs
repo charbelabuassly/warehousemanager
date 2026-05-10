@@ -130,13 +130,27 @@ namespace warehousemanager.Controllers.Delivery
 
             if (request.Status != Models.OrderStaus.Delivered && request.Status != Models.OrderStaus.Cancelled)
                 return BadRequest(new { Message = "Delivery can only set Delivered or Cancelled" });
-            //Making sure that the delivery man cannot cancel past 1 day
-            if((DateTime.Now.Date - order.Schedule.Date).Days > 1)
+
+            // Making sure that the delivery man cannot cancel past 1 day
+            if (request.Status == Models.OrderStaus.Cancelled)
             {
-                return BadRequest(new { Message = "More than one day has passed, cannot cancel anymore" });
+                if ((DateTime.Now.Date - order.Schedule.Date).Days > 1)
+                {
+                    return BadRequest(new { Message = "More than one day has passed, cannot cancel anymore" });
+                }
             }
-            //If the requested status is delivery we do not need to check anything
-            order.status = request.Status;
+            // Delivery can only set Delivered or request a "cancel".
+            // Cancellation here means "unassign and put back to Pending" so admin can re-assign.
+            if (request.Status == Models.OrderStaus.Cancelled)
+            {
+                order.status = Models.OrderStaus.Pending;
+                //order.DeliveryPersonId = -1;
+            }
+            else
+            {
+                order.status = request.Status;
+            }
+
             if (request.Status == Models.OrderStaus.Delivered)
             {
                 order.DateDelivered = DateTime.UtcNow;

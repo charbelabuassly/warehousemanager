@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace warehousemanager.Controllers.admin
 {
-    [Route("api/[controller]")]
+    [Route("api/admin/[controller]")]
     [ApiController]
     public class OrderController : ControllerBase
     {
@@ -231,15 +231,16 @@ namespace warehousemanager.Controllers.admin
                 return BadRequest(new { Message = "Delivered orders cannot be modified" });
 
             // Only allow patching statuses relevant to admin panel workflow
-            if (request.Status != OrderStaus.Pending &&
-                request.Status != OrderStaus.Assigned &&
-                request.Status != OrderStaus.Cancelled)
+            if (request.Status != OrderStaus.Assigned) //assigned is the only valid one, as the admin should only manually assign in case of pending
             {
                 return BadRequest(new { Message = "Invalid status" });
             }
 
-            if (request.Status == OrderStaus.Assigned)
+            if (request.Status == OrderStaus.Assigned) //setting it as assigned
             {
+                if (order.status != OrderStaus.Pending) // can only set assigned iff it was pending
+                    return BadRequest(new { Message = "Only pending orders can be assigned" });
+
                 var newDeliveryPersonId = request.DeliveryPersonId ?? order.DeliveryPersonId;
                 if (newDeliveryPersonId <= 0)
                     return BadRequest(new { Message = "DeliveryPersonId is required when assigning an order" });
@@ -247,11 +248,17 @@ namespace warehousemanager.Controllers.admin
                 order.DeliveryPersonId = newDeliveryPersonId;
             }
 
-            if (request.Status == OrderStaus.Pending)
+            /*if (request.Status == OrderStaus.Pending) //if incoming ia pending
             {
                 // Pending means no delivery person assigned in this system
                 order.DeliveryPersonId = -1;
             }
+
+            if (request.Status == OrderStaus.Cancelled)
+            {
+                // Cancelled means no assignment
+                order.DeliveryPersonId = -1;
+            }*/
 
             order.status = request.Status;
             await _context.SaveChangesAsync();

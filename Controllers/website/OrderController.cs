@@ -24,6 +24,33 @@ namespace warehousemanager.Controllers.website
             _scheduler = scheduler;
         }
 
+        // PATCH: api/Order/{orderId}/cancel
+        [Authorize]
+        [HttpPatch("{orderId}/cancel")]
+        public async Task<IActionResult> CancelOrder(int orderId)
+        {
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrWhiteSpace(email)) return Unauthorized(new { Message = "Missing email claim" });
+
+            var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return Unauthorized(new { Message = "User not found" });
+            if (!_token.VerifyClient(user)) return Unauthorized(new { Message = "You are not authorized" });
+
+            var order = await _context._orders.FirstOrDefaultAsync(o => o.OrdersId == orderId);
+            if (order == null) return NotFound(new { Message = "Order not found" });
+            if (order.ClientId != user.UsersId) return Unauthorized(new { Message = "You are not authorized for this order" });
+
+            if (order.status == OrderStaus.Delivered)
+                return BadRequest(new { Message = "Delivered orders cannot be cancelled" });
+            if (order.status == OrderStaus.Cancelled)
+                return BadRequest(new { Message = "Order is already cancelled" });
+
+            order.status = OrderStaus.Cancelled;
+            order.DeliveryPersonId = -1;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         // POST: api/Order
         [Authorize]
         [HttpPost]

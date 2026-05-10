@@ -5,6 +5,13 @@ import { ShoppingCart, User, LogOut, Package, Search } from 'lucide-react';
 function ClientShop() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [qtyOpen, setQtyOpen] = useState(false);
+  const [qtyProduct, setQtyProduct] = useState(null);
+  const [qtyValue, setQtyValue] = useState(1);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState('');
+  const [address, setAddress] = useState({ street: '', city: '', country: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -44,7 +51,82 @@ function ClientShop() {
   };
 
   const addToCart = (product) => {
-    setCart([...cart, product]);
+    setQtyProduct(product);
+    setQtyValue(1);
+    setQtyOpen(true);
+  };
+
+  const confirmAddToCart = () => {
+    if (!qtyProduct) return;
+    const maxQty = Number(getProductQty(qtyProduct) ?? 0);
+    const qty = Math.max(1, Math.min(Number(qtyValue) || 1, maxQty || 1));
+    setCart((prev) => [...prev, ...Array.from({ length: qty }, () => qtyProduct)]);
+    setQtyOpen(false);
+    setQtyProduct(null);
+  };
+
+  const removeFromCart = (productId) => {
+    setCart((prev) => {
+      const idx = prev.findIndex((p) => getProductId(p) === productId);
+      if (idx === -1) return prev;
+      const copy = prev.slice();
+      copy.splice(idx, 1);
+      return copy;
+    });
+  };
+
+  const clearCart = () => setCart([]);
+
+  const cartLines = cart.reduce((acc, p) => {
+    const id = getProductId(p);
+    if (id == null) return acc;
+    const existing = acc.get(id) || { product: p, quantity: 0 };
+    existing.quantity += 1;
+    acc.set(id, existing);
+    return acc;
+  }, new Map());
+
+  const cartItems = Array.from(cartLines.values());
+  const cartTotal = cartItems.reduce((sum, line) => sum + Number(getProductPrice(line.product) || 0) * line.quantity, 0);
+
+  const placeOrder = async () => {
+    if (cartItems.length === 0) return;
+    if (!address.street.trim() || !address.city.trim() || !address.country.trim()) {
+      setOrderError('Please fill in delivery address (street, city, country).');
+      return;
+    }
+
+    try {
+      setOrderError('');
+      setPlacingOrder(true);
+
+      const payload = {
+        address: {
+          street: address.street.trim(),
+          city: address.city.trim(),
+          country: address.country.trim(),
+        },
+        items: cartItems.map((line) => ({
+          productId: getProductId(line.product),
+          quantity: line.quantity,
+        })),
+      };
+
+      await api.post('/Order', payload);
+      clearCart();
+      setCartOpen(false);
+    } catch (err) {
+      console.error('Error placing order:', err);
+      setOrderError(
+        err?.response?.data?.message ||
+          err?.response?.data?.Message ||
+          err?.response?.data?.title ||
+          err?.response?.data?.Title ||
+          'Failed to place order.'
+      );
+    } finally {
+      setPlacingOrder(false);
+    }
   };
 
   const logout = () => {
@@ -90,7 +172,7 @@ function ClientShop() {
               style={{ width: '300px', paddingLeft: '2.5rem', background: 'var(--background)' }}
             />
           </div>
-          <button className="btn-ghost" style={{ position: 'relative' }}>
+          <button className="btn-ghost" style={{ position: 'relative' }} onClick={() => setCartOpen(true)} title="Open cart">
             <ShoppingCart />
             {cart.length > 0 && (
               <span style={{ 
@@ -191,6 +273,183 @@ function ClientShop() {
           </div>
         )}
       </main>
+
+      {/* Quantity modal (shown when adding to cart) */}
+      {qtyOpen && qtyProduct && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }}
+          onClick={() => !placingOrder && setQtyOpen(false)}
+        >
+          <div
+            className="glass-card"
+            style={{ width: 'min(520px, 100%)', padding: '1.5rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginTop: 0, fontSize: '1.25rem', fontWeight: 800 }}>Add to Cart</h3>
+            <div style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              {getProductName(qtyProduct)}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <button
+                className="btn-outline"
+                onClick={() => setQtyValue((v) => Math.max(1, (Number(v) || 1) - 1))}
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min={1}
+                max={Math.max(1, Number(getProductQty(qtyProduct) ?? 1))}
+                value={qtyValue}
+                onChange={(e) => setQtyValue(e.target.value)}
+                style={{ width: '120px', textAlign: 'center' }}
+              />
+              <button
+                className="btn-outline"
+                onClick={() => setQtyValue((v) => {
+                  const max = Math.max(1, Number(getProductQty(qtyProduct) ?? 1));
+                  return Math.min(max, (Number(v) || 1) + 1);
+                })}
+              >
+                +
+              </button>
+              <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                In stock: {getProductQty(qtyProduct)}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn-ghost" onClick={() => setQtyOpen(false)}>Cancel</button>
+              <button className="btn-primary" onClick={confirmAddToCart}>Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart modal */}
+      {cartOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }}
+          onClick={() => !placingOrder && setCartOpen(false)}
+        >
+          <div
+            className="glass-card"
+            style={{ width: 'min(820px, 100%)', padding: '1.5rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShoppingCart size={20} /> Cart
+              </h3>
+              <button className="btn-ghost" onClick={() => !placingOrder && setCartOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            {cartItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                Your cart is empty.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 0.75fr', gap: '1rem' }}>
+                <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', fontWeight: 700 }}>
+                    Items
+                  </div>
+                  <div style={{ padding: '0.75rem 1rem', display: 'grid', gap: '0.75rem' }}>
+                    {cartItems.map((line) => {
+                      const id = getProductId(line.product);
+                      return (
+                        <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {getProductName(line.product)}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                              Qty: {line.quantity} • ${Number(getProductPrice(line.product) || 0).toFixed(2)} each
+                            </div>
+                          </div>
+                          <button className="btn-ghost danger" onClick={() => removeFromCart(id)} title="Remove 1">
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 800 }}>Total</div>
+                      <div style={{ fontWeight: 900, color: 'var(--primary)' }}>${cartTotal.toFixed(2)}</div>
+                    </div>
+                    <button className="btn-outline" onClick={clearCart} disabled={placingOrder}>
+                      Clear cart
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', fontWeight: 700 }}>
+                    Delivery Address
+                  </div>
+                  <div style={{ padding: '0.75rem 1rem', display: 'grid', gap: '0.75rem' }}>
+                    <input
+                      placeholder="Street"
+                      value={address.street}
+                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                      disabled={placingOrder}
+                    />
+                    <input
+                      placeholder="City"
+                      value={address.city}
+                      onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                      disabled={placingOrder}
+                    />
+                    <input
+                      placeholder="Country"
+                      value={address.country}
+                      onChange={(e) => setAddress({ ...address, country: e.target.value })}
+                      disabled={placingOrder}
+                    />
+
+                    {orderError && (
+                      <div style={{ color: 'var(--error)', fontSize: '0.875rem' }}>
+                        {orderError}
+                      </div>
+                    )}
+
+                    <button className="btn-primary" onClick={placeOrder} disabled={placingOrder || cartItems.length === 0}>
+                      {placingOrder ? 'Placing order...' : 'Place Order'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

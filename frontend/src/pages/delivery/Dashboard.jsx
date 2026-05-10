@@ -172,7 +172,7 @@ function DeliveryDashboard() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <p style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--primary)' }}>
-                      {formatFullDate(delivery.schedule)}
+                      Scheduled: {formatFullDate(delivery.schedule)}
                     </p>
                     {delivery.dateDelivered && (
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
