@@ -41,11 +41,7 @@ namespace warehousemanager.Controllers.website
 
             if (!_token.VerifyClient(user)) return Unauthorized(new { Message = "You are not authorized" });
 
-            var deliveryPersonId = await _scheduler.SetDeliveryMan();
-            if (deliveryPersonId == -1)
-            {
-                return StatusCode(500, new { Message = "No delivery person available" });
-            }
+            var deliveryPersonId = await _scheduler.SetDeliveryMan(); // getting the delivery man
 
             Orders order_toMake = new();
             //The scheduler will be used to set the schedule of this order, that means WHO will be tasked with delivering it
@@ -62,11 +58,18 @@ namespace warehousemanager.Controllers.website
 
             foreach (var item in request.Items)
             {
+                //Query that gets the current price of the product:
+                var chosen_item = await _context._products.FindAsync(item.ProductId);
+                if (chosen_item == null)
+                {
+                    return NotFound(new {Message = "Item not found"});
+                }
+
                 OrderItems orderItem = new();
                 orderItem.OrdersId = order_toMake.OrdersId;
                 orderItem.ProductsId = item.ProductId;
                 orderItem.Quantity = item.Quantity;
-                orderItem.PriceAtPurchase = 0m; //Will be set to the current price of the product later using a query.
+                orderItem.PriceAtPurchase = chosen_item.Price; 
 
                 _context._orderItems.Add(orderItem);
             }

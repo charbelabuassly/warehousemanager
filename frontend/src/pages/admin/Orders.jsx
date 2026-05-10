@@ -6,6 +6,7 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [view, setView] = useState('pendingCancelled'); // pending/cancelled | assigned | delivered
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState({
     clientId: '',
@@ -19,12 +20,18 @@ const Orders = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [view]);
+
+  const getOrdersEndpoint = () => {
+    if (view === 'assigned') return '/Order';
+    if (view === 'delivered') return '/Order/delivered';
+    return '/Order/pending-cancelled';
+  };
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/Order');
+      const res = await api.get(getOrdersEndpoint());
       let normalizedData = Array.isArray(res.data) ? res.data : 
         (res.data?.$values ? res.data.$values : []);
       setOrders(normalizedData);
@@ -71,8 +78,14 @@ const Orders = () => {
   };
 
   const handleEdit = (order) => {
+    if (!order) {
+      setEditingOrder(null);
+      setFormData({});
+      setIsModalOpen(true);
+      return;
+    }
     setEditingOrder(order);
-    setFormData(order);
+    setFormData(order || {});
     setIsModalOpen(true);
   };
 
@@ -81,7 +94,22 @@ const Orders = () => {
     try {
       if (editingOrder) {
         const id = editingOrder.ordersId || editingOrder.OrdersId || editingOrder.id || editingOrder.Id;
-        await api.put(`/Order/${id}`, formData);
+        const normalized = {
+          clientId: formData.clientId ?? formData.ClientId,
+          deliveryPersonId: formData.deliveryPersonId ?? formData.DeliveryPersonId,
+          schedule: formData.schedule ?? formData.Schedule
+        };
+
+        await api.put(`/Order/${id}`, normalized);
+
+        // Status is patched (only for pending/cancelled + assigned views)
+        const nextStatus = (formData.status ?? formData.Status);
+        if (view !== 'delivered' && nextStatus) {
+          await api.patch(`/Order/${id}/status`, {
+            status: nextStatus,
+            deliveryPersonId: normalized.deliveryPersonId
+          });
+        }
       } else {
         await api.post('/Order', formData);
       }
@@ -91,7 +119,7 @@ const Orders = () => {
       fetchOrders();
     } catch (err) {
       console.error('Error saving order:', err);
-      alert('Error saving order');
+      alert(err?.response?.data?.message || 'Error saving order');
     }
   };
 
@@ -123,13 +151,38 @@ const Orders = () => {
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading orders...</div>;
   if (error) return <div style={{ padding: '2rem', color: 'red' }}>Error: {error}</div>;
 
+  const currentFormStatus = formData.status || formData.Status || 'Pending';
+
   return (
     <div style={{ padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: '700' }}>Order Management</h2>
-        <button className="btn-primary" onClick={handleEdit}>
-          <Plus size={16} style={{ marginRight: '0.5rem' }} />
-          Add Order
+        {view !== 'delivered' && (
+          <button className="btn-primary" onClick={handleEdit}>
+            <Plus size={16} style={{ marginRight: '0.5rem' }} />
+            Add Order
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <button
+          className={view === 'pendingCancelled' ? 'btn-primary' : 'btn-outline'}
+          onClick={() => setView('pendingCancelled')}
+        >
+          Pending / Cancelled
+        </button>
+        <button
+          className={view === 'assigned' ? 'btn-primary' : 'btn-outline'}
+          onClick={() => setView('assigned')}
+        >
+          Assigned
+        </button>
+        <button
+          className={view === 'delivered' ? 'btn-primary' : 'btn-outline'}
+          onClick={() => setView('delivered')}
+        >
+          Delivered
         </button>
       </div>
 
@@ -288,9 +341,11 @@ const Orders = () => {
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                      <button className="btn-icon" onClick={() => handleEdit(order)}>
-                        <Edit size={16} />
-                      </button>
+                      {view !== 'delivered' && (
+                        <button className="btn-icon" onClick={() => handleEdit(order)} title="Update / Assign">
+                          <Edit size={16} />
+                        </button>
+                      )}
                       <button className="btn-icon btn-danger" onClick={() => handleDelete(getOrderId(order))}>
                         <Trash size={16} />
                       </button>
@@ -345,7 +400,7 @@ const Orders = () => {
                     type="number"
                     value={formData.deliveryPersonId || formData.DeliveryPersonId || ''}
                     onChange={(e) => setFormData({ ...formData, deliveryPersonId: parseInt(e.target.value) })}
-                    required
+                    required={currentFormStatus === 'Assigned'}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -380,6 +435,7 @@ const Orders = () => {
                   <select
                     value={formData.status || formData.Status || 'Pending'}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    disabled={view === 'delivered'}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -389,10 +445,15 @@ const Orders = () => {
                       color: 'var(--text)'
                     }}
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
+                    {view === 'delivered' ? (
+                      <option value="Delivered">Delivered</option>
+                    ) : (
+                      <>
+                        <option value="Pending">Pending</option>
+                        <option value="Assigned">Assigned</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
