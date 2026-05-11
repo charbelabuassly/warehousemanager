@@ -91,6 +91,13 @@ namespace warehousemanager.Controllers.website
                 {
                     return NotFound(new {Message = "Item not found"});
                 }
+                //We need to decrement the stock by the quantity
+                if (item.Quantity > chosen_item.Quantity || item.Quantity < 0)
+                {
+                    return BadRequest(new { Message = "Invalid Quantity" });
+                }
+                //Now decrement
+                chosen_item.Quantity -= item.Quantity;
 
                 OrderItems orderItem = new();
                 orderItem.OrdersId = order_toMake.OrdersId;
