@@ -21,9 +21,6 @@ namespace warehousemanager.Data
         //This method is used for manual configurations of the FKs.
         protected override void OnModelCreating(ModelBuilder modelBuilder) //used for manual configurations
         {
-            // Map to existing SQL table name in your DB.
-            modelBuilder.Entity<Products>().ToTable("_prodcust");
-
             // -----------------------
             // Order FK configs 
             // -----------------------
