@@ -163,5 +163,31 @@ namespace warehousemanager.Controllers.website
             }
             return Ok(res);
         }
+
+        //GET products/trending?id=5&category=games , 1 here refers to the first 9 most popular products, 2 would give u the second 9 most popular products...
+        //This won't be gatekept from users, no need for tokens
+        [HttpGet("trending/")]
+        public async Task<ActionResult<IEnumerable<Products>>> GetTrendingProducts([FromQuery] int? page, [FromQuery] int? category_id)
+        {
+            int pageSize = 9;
+
+            int pageNumber = page.GetValueOrDefault(1);
+            if (pageNumber < 1) pageNumber = 1;
+
+            var query = _context._products.AsQueryable();
+
+            if (category_id != null)
+            {
+                query = query.Where(p => p.CategoryId == category_id);
+            }
+
+            var products = await query
+                .OrderByDescending(p => p.QuantitySold)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(products);
+        }
     }
 }
