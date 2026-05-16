@@ -1,13 +1,14 @@
-using warehousemanager.Data;
-using warehousemanager.DTO;
-using warehousemanager.Models;
-using warehousemanager.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Net.NetworkInformation;
 using System.Security.Claims;
+using warehousemanager.Data;
+using warehousemanager.DTO;
+using warehousemanager.Models;
+using warehousemanager.Services;
 
 namespace warehousemanager.Controllers.website
 {
@@ -164,10 +165,10 @@ namespace warehousemanager.Controllers.website
             return Ok(res);
         }
 
-        //GET products/trending?id=5&category=games , 1 here refers to the first 9 most popular products, 2 would give u the second 9 most popular products...
+        //GET products/trending?page=5&category_id=games , 1 here refers to the first 9 most popular products, 2 would give u the second 9 most popular products...
         //This won't be gatekept from users, no need for tokens
-        [HttpGet("trending/")]
-        public async Task<ActionResult<IEnumerable<Products>>> GetTrendingProducts([FromQuery] int? page, [FromQuery] int? category_id)
+        [HttpGet("trending")]
+        public async Task<ActionResult<IEnumerable<ProductDTO>>> GetTrendingProducts([FromQuery] int? page, [FromQuery] int? category_id)
         {
             int pageSize = 9;
 
@@ -181,13 +182,100 @@ namespace warehousemanager.Controllers.website
                 query = query.Where(p => p.CategoryId == category_id);
             }
 
-            var products = await query
-                .OrderByDescending(p => p.QuantitySold)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            var result = await query
+            .OrderByDescending(p => p.QuantitySold)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProductDTO
+            {
+                ProductsId = p.ProductsId,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.Price,
+                CategoryId = p.CategoryId,
+                Discount = p.Discount,
+                StockStatus =
+                    p.Quantity <= 0 ? "Out of Stock" :
+                    p.Quantity <= 5 ? "Low Stock" :
+                    "In Stock"
+            })
+            .ToListAsync();
+            
+            return Ok(result);
+        }
 
-            return Ok(products);
+        [HttpGet("new")]
+        public async Task<ActionResult<IEnumerable<ProductDTO>>> GetNewProducts([FromQuery] int? page, [FromQuery] int? category_id)
+        {
+            int pageSize = 9;
+
+            int pageNumber = page.GetValueOrDefault(1);
+            if (pageNumber < 1) pageNumber = 1;
+
+            var query = _context._products.AsQueryable();
+
+            if (category_id != null)
+            {
+                query = query.Where(p => p.CategoryId == category_id);
+            }
+
+            var result = await query
+            .OrderByDescending(p => p.LastRestockedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProductDTO
+            {
+                ProductsId = p.ProductsId,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.Price,
+                CategoryId = p.CategoryId,
+                Discount = p.Discount,
+                StockStatus =
+                    p.Quantity <= 0 ? "Out of Stock" :
+                    p.Quantity <= 5 ? "Low Stock" :
+                    "In Stock"
+            })
+            .ToListAsync();
+
+            return Ok(result);
+        }
+
+        [HttpGet("discount")]
+        public async Task<ActionResult<IEnumerable<ProductDTO>>> GetDiscountedProducts([FromQuery] int? page, [FromQuery] int? category_id)
+        {
+            int pageSize = 9;
+
+            int pageNumber = page.GetValueOrDefault(1);
+            if (pageNumber < 1) pageNumber = 1;
+
+            var query = _context._products.AsQueryable();
+
+            if (category_id != null)
+            {
+                query = query.Where(p => p.CategoryId == category_id);
+            }
+
+            var result = await query
+            .OrderByDescending(p => p.Discount)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProductDTO
+            {
+                ProductsId = p.ProductsId,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.Price,
+                CategoryId = p.CategoryId,
+                Discount = p.Discount,
+                StockStatus =
+                    p.Quantity <= 0 ? "Out of Stock" :
+                    p.Quantity <= 5 ? "Low Stock" :
+                    "In Stock"
+            })
+            .ToListAsync();
+
+            return Ok(result);
         }
     }
 }

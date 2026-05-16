@@ -98,12 +98,14 @@ namespace warehousemanager.Controllers.website
                 }
                 //Now decrement
                 chosen_item.Quantity -= item.Quantity;
+                //also increment the quantity sold
+                chosen_item.QuantitySold += item.Quantity;
 
                 OrderItems orderItem = new();
                 orderItem.OrdersId = order_toMake.OrdersId;
                 orderItem.ProductsId = item.ProductId;
                 orderItem.Quantity = item.Quantity;
-                orderItem.PriceAtPurchase = chosen_item.Price; 
+                orderItem.PriceAtPurchase = chosen_item.Price - (chosen_item.Price * chosen_item.Discount / 100m);
 
                 _context._orderItems.Add(orderItem);
             }

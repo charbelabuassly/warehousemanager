@@ -157,7 +157,7 @@ namespace warehousemanager.Controllers.admin
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null) return BadRequest();
+            if (user == null) return BadRequest("hi");
 
             if (!_token.VerifyAdmin(user))
             {
@@ -195,6 +195,12 @@ namespace warehousemanager.Controllers.admin
             existing.Description = product.Description;
             existing.Price = product.Price;
             existing.CategoryId = product.CategoryId;
+
+            if (existing.Quantity > product.Quantity)
+            {
+                existing.LastRestockedAt = DateTime.UtcNow;
+            }
+
             existing.Quantity = product.Quantity;
 
             await _context.SaveChangesAsync();
