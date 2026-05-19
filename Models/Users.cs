@@ -17,7 +17,7 @@ namespace warehousemanager.Models
         public string Country { get; set; } = null!;
 
         public Role Role { get; set; } = null!;
-        public ICollection<Orders> OrdersClient { get; } = new List<Orders>(); // This is used for building the relationship
-        public ICollection<Orders> OrdersDelivery { get; } = new List<Orders>(); // This is used for building the relationship
+        public ICollection<Orders> OrdersClient { get; set; } = new List<Orders>(); // This is used for building the relationship
+        public ICollection<Orders> OrdersDelivery { get; set; } = new List<Orders>(); // This is used for building the relationship
     }
 }

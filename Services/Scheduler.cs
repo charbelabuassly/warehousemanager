@@ -48,9 +48,11 @@ namespace warehousemanager.Services
             return user.Id;
             */
 
+            //This is an improved version which chooses the worker with the LEAST ASSIGNED DELIVERIES
+
             var deliveryManId = await _context._users
                 .Where(u => u.RoleId == 3 && u.IsActive == true)
-                .OrderBy(u => u.OrdersDelivery.Count())
+                .OrderBy(u => u.OrdersDelivery.Count(od => od.status == Models.OrderStaus.Assigned))
                 .Select(u => u.UsersId)
                 .FirstOrDefaultAsync();
 
