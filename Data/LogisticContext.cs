@@ -17,6 +17,7 @@ namespace warehousemanager.Data
         public DbSet<Products> _products { get; set; }
         public DbSet<Role> _roles { get; set; }
         public DbSet<Users> _users { get; set; }
+        public DbSet<Reviews> _reviews { get; set; }
 
         //This method is used for manual configurations of the FKs.
         protected override void OnModelCreating(ModelBuilder modelBuilder) //used for manual configurations
@@ -46,6 +47,9 @@ namespace warehousemanager.Data
             modelBuilder.Entity<Users>()
                 .HasIndex(u => u.Email) //stating that the table has another index other than the Pk and that it should be unique
                 .IsUnique();
+
+            modelBuilder.Entity<Reviews>()
+            .HasKey(r => new { r.ProductsId, r.UsersId });
         }
     }
 }
