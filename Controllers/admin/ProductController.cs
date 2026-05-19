@@ -156,8 +156,9 @@ namespace warehousemanager.Controllers.admin
         public async Task<ActionResult<Products>> InsertProduct(Products product)
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null) return BadRequest("hi");
+            var user 
+                = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return BadRequest();
 
             if (!_token.VerifyAdmin(user))
             {
@@ -253,6 +254,7 @@ namespace warehousemanager.Controllers.admin
 
             //else we can patch the stock
             existing.Quantity += stock.Amount;
+            existing.LastRestockedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return NoContent();
         }

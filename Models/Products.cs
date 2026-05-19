@@ -16,7 +16,7 @@ namespace warehousemanager.Models
 
         [Range(0, 100)]
         public int Discount { get; set; } = 0; //percentage discount, 100 means no discount, 80 means 20% discount, etc.
-        public Category category { get; set; } = null!;
+        public Category? category { get; set; }
         //public ICollection<OrderItems> OrderItems { get; } = new List<OrderItems>(); // This is used for building the relationship
 
 
