@@ -4,19 +4,19 @@ import { useState, useEffect } from "react";
 import { UserRole } from "./types";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
+import Loading from "./components/Loading"
 
 export default function root() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      const payload: any = jwtDecode(token);
-      let role: String = payload.Role;
-      if (role === "0") //client
+      const token = localStorage.getItem('token');
+      const role = localStorage.getItem('role');
+    if (token && role) {
+      if (role === "1") //client
         router.push("/store")
-      else if (role === "1") //admin
+      else if (role === "2") //admin
         router.push("/admin")
       else{ // delivery person
         router.push("/delivery")
@@ -28,5 +28,5 @@ export default function root() {
     setLoading(false);
   }, []);
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <Loading/>;
 }
