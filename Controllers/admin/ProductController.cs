@@ -196,6 +196,7 @@ namespace warehousemanager.Controllers.admin
             existing.Description = product.Description;
             existing.Price = product.Price;
             existing.CategoryId = product.CategoryId;
+            existing.ImageURL = product.ImageURL;
 
             if (existing.Quantity > product.Quantity)
             {
