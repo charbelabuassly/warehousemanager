@@ -131,7 +131,7 @@ namespace warehousemanager.Controllers.website
         //GET /shop/search?name=laptop
         //As we can see minPrice, maxPrice and category aren't availabe, meaning they are null by default
         [HttpGet("search")]
-        public async Task<ActionResult<Products>> GetProductByFriendlyField([FromQuery] string? name, [FromQuery] int? minPrice, [FromQuery] int? maxPrice, [FromQuery] int ?categoryId)
+        public async Task<ActionResult> GetProductByFriendlyField([FromQuery] string? name, [FromQuery] int? minPrice, [FromQuery] int? maxPrice, [FromQuery] int ?categoryId)
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
@@ -157,18 +157,41 @@ namespace warehousemanager.Controllers.website
             {
                 query = query.Where(p => p.CategoryId == categoryId);
             }
-            var res = await query.ToListAsync();
-            if (res == null)
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Select(p => new ProductDTO
+                {
+                    ProductsId = p.ProductsId,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.category != null ? p.category.Name : "",
+                    Discount = p.Discount,
+                    ImageURL = p.ImageURL,
+                    StockStatus =
+                        p.Quantity <= 0 ? "Out of Stock" :
+                        p.Quantity <= 5 ? "Low Stock" :
+                        "In Stock"
+                })
+                .ToListAsync();
+
+            //if (res.Count == 0) easier to have empty array tbh also stopped using res ask me about it
+            //{
+            //    return NotFound(new { Message = "No products found" });
+            //}
+            return Ok(new
             {
-                return NotFound(new { Message = "No products found" });
-            }
-            return Ok(res);
+                items,
+                totalCount
+            });
         }
 
         //GET products/trending?page=5&category_id=games , 1 here refers to the first 9 most popular products, 2 would give u the second 9 most popular products...
         //This won't be gatekept from users, no need for tokens
         [HttpGet("trending")]
-        public async Task<ActionResult<IEnumerable<ProductDTO>>> GetTrendingProducts([FromQuery] int? page, [FromQuery] int? category_id)
+        public async Task<ActionResult> GetTrendingProducts([FromQuery] int? page, [FromQuery] int? category_id)
         {
             int pageSize = 9;
 
@@ -182,31 +205,38 @@ namespace warehousemanager.Controllers.website
                 query = query.Where(p => p.CategoryId == category_id);
             }
 
-            var result = await query
-            .OrderByDescending(p => p.QuantitySold)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ProductDTO
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(p => p.QuantitySold)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new ProductDTO
+                {
+                    ProductsId = p.ProductsId,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.category != null ? p.category.Name : "",
+                    Discount = p.Discount,
+                    StockStatus =
+                        p.Quantity <= 0 ? "Out of Stock" :
+                        p.Quantity <= 5 ? "Low Stock" :
+                        "In Stock",
+                    ImageURL = p.ImageURL
+                })
+                .ToListAsync();
+
+            return Ok(new
             {
-                ProductsId = p.ProductsId,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.Price,
-                CategoryId = p.CategoryId,
-                Discount = p.Discount,
-                StockStatus =
-                    p.Quantity <= 0 ? "Out of Stock" :
-                    p.Quantity <= 5 ? "Low Stock" :
-                    "In Stock",
-                ImageURL = p.ImageURL
-            })
-            .ToListAsync();
-            
-            return Ok(result);
+                items,
+                totalCount
+            });
         }
 
         [HttpGet("new")]
-        public async Task<ActionResult<IEnumerable<ProductDTO>>> GetNewProducts([FromQuery] int? page, [FromQuery] int? category_id)
+        public async Task<ActionResult> GetNewProducts([FromQuery] int? page, [FromQuery] int? category_id)
         {
             int pageSize = 9;
 
@@ -220,31 +250,38 @@ namespace warehousemanager.Controllers.website
                 query = query.Where(p => p.CategoryId == category_id);
             }
 
-            var result = await query
-            .OrderByDescending(p => p.LastRestockedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ProductDTO
-            {
-                ProductsId = p.ProductsId,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.Price,
-                CategoryId = p.CategoryId,
-                Discount = p.Discount,
-                StockStatus =
-                    p.Quantity <= 0 ? "Out of Stock" :
-                    p.Quantity <= 5 ? "Low Stock" :
-                    "In Stock",
-                ImageURL = p.ImageURL
-            })
-            .ToListAsync();
+            var totalCount = await query.CountAsync();
 
-            return Ok(result);
+            var items = await query
+                .OrderByDescending(p => p.LastRestockedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new ProductDTO
+                {
+                    ProductsId = p.ProductsId,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.category != null ? p.category.Name : "",
+                    Discount = p.Discount,
+                    StockStatus =
+                        p.Quantity <= 0 ? "Out of Stock" :
+                        p.Quantity <= 5 ? "Low Stock" :
+                        "In Stock",
+                    ImageURL = p.ImageURL
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                items,
+                totalCount
+            });
         }
 
         [HttpGet("discount")]
-        public async Task<ActionResult<IEnumerable<ProductDTO>>> GetDiscountedProducts([FromQuery] int? page, [FromQuery] int? category_id)
+        public async Task<ActionResult> GetDiscountedProducts([FromQuery] int? page, [FromQuery] int? category_id)
         {
             int pageSize = 9;
 
@@ -260,27 +297,34 @@ namespace warehousemanager.Controllers.website
                 query = query.Where(p => p.CategoryId == category_id);
             }
 
-            var result = await query
-            .OrderByDescending(p => p.Discount)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ProductDTO
-            {
-                ProductsId = p.ProductsId,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.Price,
-                CategoryId = p.CategoryId,
-                Discount = p.Discount,
-                StockStatus =
-                    p.Quantity <= 0 ? "Out of Stock" :
-                    p.Quantity <= 5 ? "Low Stock" :
-                    "In Stock",
-                ImageURL = p.ImageURL
-            })
-            .ToListAsync();
+            var totalCount = await query.CountAsync();
 
-            return Ok(result);
+            var items = await query
+                .OrderByDescending(p => p.Discount)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new ProductDTO
+                {
+                    ProductsId = p.ProductsId,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.category != null ? p.category.Name : "",
+                    Discount = p.Discount,
+                    StockStatus =
+                        p.Quantity <= 0 ? "Out of Stock" :
+                        p.Quantity <= 5 ? "Low Stock" :
+                        "In Stock",
+                    ImageURL = p.ImageURL
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                items,
+                totalCount
+            });
         }
     }
 }

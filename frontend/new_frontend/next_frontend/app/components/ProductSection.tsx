@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
-import { ProductDTO } from "../types";
+import { ProductDTO, ProductPageResponse } from "../types";
 import { ProductCard } from "./ProductCard";
 
 const COLLAPSED_COUNT = 3;
@@ -12,7 +12,7 @@ interface ProductSectionProps {
   title: string;
   icon: React.ReactNode;
   accentColor: string;
-  products: ProductDTO[];
+  products: ProductPageResponse;
   badgeMode?: "stock" | "new" | "none" | "discount";
   onAddToCart: (product: ProductDTO) => void;
 }
@@ -33,10 +33,8 @@ export function ProductSection({
     setPage(1);
   }, [products]);
 
-  const totalPages = Math.ceil(products.length / PAGE_SIZE);
-  const displayedProducts = expanded
-    ? products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-    : products.slice(0, COLLAPSED_COUNT);
+  const totalPages = Math.ceil(products.totalCount / PAGE_SIZE);
+  const displayedProducts = expanded ? products.items : products.items.slice(0, 9);
 
   const handleShowMore = () => {
     setExpanded(true);
@@ -49,9 +47,11 @@ export function ProductSection({
   };
 
   const goToPage = (p: number) => {
+    
+    //for page number to color correctly
     setPage(p);
     // Scroll section into view smoothly
-    window.scrollBy({ top: -80, behavior: "smooth" });
+    window.scrollBy({ top: -1400, behavior: "smooth" });
   };
 
   // Generate page number range with ellipsis
@@ -76,11 +76,11 @@ export function ProductSection({
           <div className={`p-2 rounded-xl ${accentColor}`}>{icon}</div>
           <h2 className="text-gray-900">{title}</h2>
           <span className="text-sm text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-            {products.length}
+            {products.totalCount}
           </span>
         </div>
 
-        {!expanded && products.length > COLLAPSED_COUNT && (
+        {!expanded && products.totalCount > COLLAPSED_COUNT && (
           <button
             onClick={handleShowMore}
             className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700 transition-colors"
@@ -102,7 +102,7 @@ export function ProductSection({
       </div>
 
       {/* Products grid */}
-      {products.length === 0 ? (
+      {products.totalCount=== 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 py-12 text-center text-gray-400 text-sm">
           No products found in this section
         </div>
@@ -113,7 +113,7 @@ export function ProductSection({
               key={product.id}
               product={product}
               onAddToCart={onAddToCart}
-              badgeMode={"new"}
+              badgeMode={badgeMode}
             />
           ))}
         </div>

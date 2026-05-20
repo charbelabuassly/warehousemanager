@@ -1,14 +1,3 @@
-export type Category =
-  | "All Products"
-  | "Electronics"
-  | "Furniture"
-  | "Clothing"
-  | "Food & Beverages"
-  | "Tools & Hardware"
-  | "Sports & Outdoors"
-  | "Books & Stationery";
-
-export type ProductCategory = Exclude<Category, "All Products">;
 
 export type ProductDTO = {
   id: number;
@@ -17,7 +6,8 @@ export type ProductDTO = {
   price: number;
   discount: number;
   categoryId: number;
-  stockStatus?: string;
+  categoryName: string;
+  stockStatus: string;
   imageURL: string
 };
 
@@ -27,3 +17,8 @@ export interface CartItem {
   product: ProductDTO;
   quantity: number;
 }
+
+export type ProductPageResponse = {
+  items: ProductDTO[];
+  totalCount: number;
+};

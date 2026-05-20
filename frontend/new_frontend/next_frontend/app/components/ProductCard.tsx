@@ -4,7 +4,7 @@ import { ProductDTO } from "../types";
 interface ProductCardProps {
   product: ProductDTO;
   onAddToCart: (product: ProductDTO) => void;
-  badgeMode?: "stock" | "new" | "none";
+  badgeMode?: "stock" | "new" | "none" | "discount";
 }
 
 export function ProductCard({ product, onAddToCart, badgeMode = "none" }: ProductCardProps) {
@@ -24,23 +24,33 @@ export function ProductCard({ product, onAddToCart, badgeMode = "none" }: Produc
         />
 
         {/* Badges */}
+
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
-          {/* {badgeMode === "stock" && product.stock <= 5 && (
-            <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full" style={{ fontWeight: 600 }}>
-              Only {product.stock} left!
-            </span>
-          )}
-          {badgeMode === "new" && product.isNew && (
-            <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full" style={{ fontWeight: 600 }}>
-              New
-            </span>
-          )} */}
-          {discount && (
-            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full" style={{ fontWeight: 600 }}>
-              -{discount}%
-            </span>
-          )}
+          <span
+          className={`text-white text-xs px-2 py-0.5 rounded-full ${
+            product.stockStatus === "Out of Stock"
+              ? "bg-red-500"
+              : product.stockStatus === "Low Stock"
+              ? "bg-orange-500"
+              : "bg-green-500"
+          }`}
+          style={{ fontWeight: 600 }}
+        >
+          {product.stockStatus}
+        </span>
+
+        {discount > 0 && (
+          <span className="self-start bg-red-500 text-white text-xs px-2 py-0.5 rounded-full" style={{ fontWeight: 600 }}>
+            -{discount}%
+          </span>
+        )}
         </div>
+
+        {badgeMode === "new" && (
+          <span className="absolute top-2.5 right-2.5 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full" style={{ fontWeight: 600 }}>
+            New
+          </span>
+        )}
 
         {/* Wishlist */}
         {/* <button className="absolute top-2.5 right-2.5 bg-white/90 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-sm">
@@ -50,7 +60,7 @@ export function ProductCard({ product, onAddToCart, badgeMode = "none" }: Produc
 
       {/* Content */}
       <div className="p-4 flex flex-col gap-1.5 flex-1">
-        <span className="text-xs text-green-600" style={{ fontWeight: 600 }}>{product.categoryId}</span>
+        <span className="text-xs text-green-600" style={{ fontWeight: 600 }}>{product.categoryName}</span>
 
         <h4 className="text-gray-900 leading-snug line-clamp-2 text-sm">{product.name}</h4>
 

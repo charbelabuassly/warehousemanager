@@ -1,20 +1,27 @@
 import { useState, useRef, useEffect } from "react";
 import { ShoppingBasket, Search, ShoppingCart, User, LogOut, ChevronDown, X } from "lucide-react";
 import { CartItem } from "../types";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   userName: String;
   cartItems: CartItem[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onLogout: () => void;
   onCartOpen: () => void;
 }
 
-export function Header({ userName, cartItems, searchQuery, onSearchChange, onLogout, onCartOpen }: HeaderProps) {
+export function Header({ userName, cartItems, searchQuery, onSearchChange, onCartOpen }: HeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const router = useRouter();
+
+  function LogOutClicked() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    router.push("/")
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -97,7 +104,7 @@ export function Header({ userName, cartItems, searchQuery, onSearchChange, onLog
                   <p className="text-xs text-gray-500">Customer account</p>
                 </div>
                 <button
-                  onClick={() => { setUserMenuOpen(false); onLogout(); }}
+                  onClick={ LogOutClicked }
                   className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors rounded-b-2xl"
                 >
                   <LogOut size={15} />

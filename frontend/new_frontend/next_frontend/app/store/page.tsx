@@ -1,5 +1,5 @@
 import ClientPage from "./clientPage";
-import {ProductDTO} from "@/app/types"
+import {ProductPageResponse} from "@/app/types";
 
 export default async function ProductsPage() {
   const trendingRes = await fetch("http://localhost:5157/api/shop/trending?page=1", {
@@ -14,9 +14,9 @@ export default async function ProductsPage() {
     cache: "no-store"
   });
 
-  const trending : ProductDTO[] = await trendingRes.json();
-  const newest : ProductDTO[] = await newestRes.json();
-  const discounted : ProductDTO[] = await discountedRes.json();
+  const trending : ProductPageResponse = await trendingRes.json();
+  const newest : ProductPageResponse = await newestRes.json();
+  const discounted : ProductPageResponse = await discountedRes.json();
 
   return <ClientPage trending={trending} newest={newest} discounted={discounted} />;
 }

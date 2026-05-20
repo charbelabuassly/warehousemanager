@@ -2,21 +2,14 @@
 
 import { TrendingUp, Sparkles, Percent } from "lucide-react";
 import { ProductSection } from "../components/ProductSection";
-import { ProductDTO } from "../types";
+import { ProductPageResponse } from "../types";
 import { useEffect } from "react";
-import { LayoutGrid, Cpu, Sofa, Shirt, ShoppingBag, Wrench, Bike, BookOpen } from "lucide-react";
+import { LayoutGrid, Cpu, Sofa, Shirt, ShoppingBag, Wrench, Bike, BookOpen, Search } from "lucide-react";
 import { Header } from "../components/Header";
 import { useState } from "react";
-import api from "../lib/api";
-
-import Link from "next/link";
 
 function handleAddToCart(){
   return;
-}
-
-function handleLogout(){
-    return;
 }
 
 function setCartOpen(status: boolean){
@@ -42,9 +35,10 @@ export default function clientPage(props : any){
     // const [cartOpen, setCartOpen] = useState(false);
 
     //for products
-    const [trending, setTrending] = useState<ProductDTO[]>(props.trending);
-    const [newest, setNewest] = useState<ProductDTO[]>(props.newest);
-    const [discounted, setDiscounted] = useState<ProductDTO[]>(props.discounted);
+    const [trending, setTrending] = useState<ProductPageResponse>(props.trending);
+    const [newest, setNewest] = useState<ProductPageResponse>(props.newest);
+    const [discounted, setDiscounted] = useState<ProductPageResponse>(props.discounted);
+    const [searchItems, setSearchItems] = useState<ProductPageResponse>({ items: [], totalCount: 0});
     const [categories, setCategories] = useState([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
@@ -73,6 +67,28 @@ export default function clientPage(props : any){
     fetchCategories();
 
     }, []);
+
+    useEffect(() => {
+    async function fetchSearchResults() {
+        const token = localStorage.getItem("token");
+        const name = encodeURIComponent(searchQuery);
+
+        const res = await fetch(`https://localhost:7087/api/shop/search?name=${name}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        const data = await res.json();
+        setSearchItems(data);
+    }
+
+    if (searchQuery.trim() !== "") {
+        fetchSearchResults();
+    } else {
+        setTrending(props.trending);
+    }
+    }, [searchQuery]);
 
     function CategoryBar({
     selectedCategoryId,
@@ -142,12 +158,21 @@ export default function clientPage(props : any){
         cartItems={[]}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onLogout={handleLogout}
         onCartOpen={() => setCartOpen(true)}
       />
     <CategoryBar selectedCategoryId={selectedCategoryId} categories = {categories}/>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+        {searchQuery.trim() !== "" && (
+          <ProductSection
+          title={`Search Results for "${searchQuery}"`}
+          icon={<Search size={18} className="text-purple-600" />}
+          accentColor="bg-purple-50"
+          products={searchItems}
+          badgeMode="none"
+          onAddToCart={handleAddToCart}
+        />
+        )}
         <ProductSection
           title="Most Popular"
           icon={<TrendingUp size={18} className="text-amber-600" />}
