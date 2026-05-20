@@ -2,15 +2,13 @@
 
 import { TrendingUp, Sparkles, Percent } from "lucide-react";
 import { ProductSection } from "../components/ProductSection";
-import { ProductPageResponse } from "../types";
+import { ProductPageResponse, ProductDTO } from "../types";
 import { useEffect } from "react";
 import { LayoutGrid, Cpu, Sofa, Shirt, ShoppingBag, Wrench, Bike, BookOpen, Search } from "lucide-react";
 import { Header } from "../components/Header";
 import { useState } from "react";
-
-function handleAddToCart(){
-  return;
-}
+import api from "../lib/api";
+import { ShoppingCart } from "lucide-react";
 
 function setCartOpen(status: boolean){
     return status;
@@ -42,6 +40,42 @@ export default function clientPage(props : any){
     const [categories, setCategories] = useState([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
+    //for cart
+    const [cart, setCart] = useState<ProductDTO[]>([]);
+    const [cartOpen, setCartOpen] = useState(false);
+    const [placingOrder, setPlacingOrder] = useState(false);
+    const [orderError, setOrderError] = useState("");
+    const [address, setAddress] = useState({
+    street: "",
+    city: "",
+    country: ""
+    });
+
+    const getProductId = (p: any) => p?.productsId ?? p?.ProductsId ?? p?.id ?? p?.Id;
+    const getProductPrice = (p: any) => p?.price ?? p?.Price ?? 0;
+
+    function handleAddToCart(product: ProductDTO) {
+        setCart((prev) => [...prev, product]);
+    }
+
+    const cartLines = cart.reduce((acc, p) => {
+    const id = getProductId(p);
+
+    if (id == null) return acc;
+
+    const existing = acc.get(id) || { product: p, quantity: 0 };
+    existing.quantity += 1;
+    acc.set(id, existing);
+
+    return acc;
+    }, new Map());
+
+    const cartItems = Array.from(cartLines.values());
+
+    const cartTotal = cartItems.reduce((sum, line) => {
+    return sum + Number(getProductPrice(line.product) || 0) * line.quantity;
+    }, 0);
+
     useEffect(() => {
 
     async function fetchCategories() {
@@ -67,6 +101,45 @@ export default function clientPage(props : any){
     fetchCategories();
 
     }, []);
+
+    async function placeOrder() {
+        if (cartItems.length === 0) return;
+
+        if (!address.street.trim() || !address.city.trim() || !address.country.trim()) {
+            setOrderError("Please fill in delivery address.");
+            return;
+        }
+
+        try {
+            setOrderError("");
+            setPlacingOrder(true);
+
+            const payload = {
+                address: {
+                    street: address.street.trim(),
+                    city: address.city.trim(),
+                    country: address.country.trim()
+                },
+            items: cartItems.map((line: any) => ({
+                productId: getProductId(line.product),
+                quantity: line.quantity
+            }))
+            };
+
+            await api.post("/Order", payload);
+
+            setCart([]);
+            setCartOpen(false);
+        } catch (err: any) {
+            setOrderError(
+            err?.response?.data?.message ||
+            err?.response?.data?.Message ||
+            "Failed to place order."
+            );
+        } finally {
+            setPlacingOrder(false);
+        }
+        }
 
     useEffect(() => {
     async function fetchSearchResults() {
@@ -155,7 +228,7 @@ export default function clientPage(props : any){
     <>
     <Header
         userName={userName}
-        cartItems={[]}
+        cartItems={cartItems}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onCartOpen={() => setCartOpen(true)}
@@ -209,7 +282,154 @@ export default function clientPage(props : any){
         />
       </div>
     </div>
+    {cartOpen && (
+  <div
+    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onClick={() => !placingOrder && setCartOpen(false)}
+  >
+    <div
+      className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Your Cart</h2>
+          <p className="text-sm text-gray-500">
+            Review your items and delivery address
+          </p>
+        </div>
+
+        <button
+          onClick={() => !placingOrder && setCartOpen(false)}
+          className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600"
+        >
+          ×
+        </button>
+      </div>
+
+      {cartItems.length === 0 ? (
+        <div className="py-16 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <ShoppingCart size={28} className="text-gray-400" />
+          </div>
+
+          <h3 className="text-lg font-semibold text-gray-900">
+            Your cart is empty
+          </h3>
+
+          <p className="text-sm text-gray-500 mt-1">
+            Add some products first.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr] gap-0">
+          <div className="p-6 border-r border-gray-100">
+            <h3 className="font-semibold text-gray-900 mb-4">Items</h3>
+
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+              {cartItems.map((line: any) => (
+                <div
+                  key={getProductId(line.product)}
+                  className="flex items-center justify-between gap-4 bg-gray-50 rounded-2xl p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">
+                      {line.product.name}
+                    </p>
+
+                    <p className="text-sm text-gray-500 mt-1">
+                      Qty: {line.quantity} × $
+                      {Number(getProductPrice(line.product) || 0).toFixed(2)}
+                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <p className="font-bold text-green-700">
+                      $
+                      {(
+                        Number(getProductPrice(line.product) || 0) *
+                        line.quantity
+                      ).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-gray-600">Total</span>
+              <span className="text-2xl font-extrabold text-gray-900">
+                ${cartTotal.toFixed(2)}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setCart([])}
+              disabled={placingOrder}
+              className="mt-4 w-full border border-red-200 text-red-600 hover:bg-red-50 py-2.5 rounded-xl transition-colors"
+            >
+              Clear Cart
+            </button>
+          </div>
+
+          <div className="p-6 bg-gray-50">
+            <h3 className="font-semibold text-gray-900 mb-4">
+              Delivery Address
+            </h3>
+
+            <div className="space-y-3">
+              <input
+                placeholder="Street"
+                value={address.street}
+                onChange={(e) =>
+                  setAddress({ ...address, street: e.target.value })
+                }
+                disabled={placingOrder}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-300"
+              />
+
+              <input
+                placeholder="City"
+                value={address.city}
+                onChange={(e) =>
+                  setAddress({ ...address, city: e.target.value })
+                }
+                disabled={placingOrder}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-300"
+              />
+
+              <input
+                placeholder="Country"
+                value={address.country}
+                onChange={(e) =>
+                  setAddress({ ...address, country: e.target.value })
+                }
+                disabled={placingOrder}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-300"
+              />
+            </div>
+
+            {orderError && (
+              <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
+                {orderError}
+              </p>
+            )}
+
+            <button
+              onClick={placeOrder}
+              disabled={placingOrder || cartItems.length === 0}
+              className="mt-5 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3.5 rounded-xl shadow-lg shadow-green-200 transition-colors font-semibold"
+            >
+              {placingOrder ? "Placing order..." : "Place Order"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+            
     </>
-    
   );
   } 

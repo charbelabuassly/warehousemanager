@@ -151,7 +151,8 @@ const Products = () => {
       price: product.price || product.Price,
       quantity: product.quantity || product.Quantity,
       description: product.description || product.Description,
-      categoryId: product.categoryId || product.CategoryId
+      categoryId: product.categoryId || product.CategoryId,
+      imageUrl: product.imageUrl || product.ImageUrl
     };
     return fieldMap[field];
   };
@@ -498,6 +499,25 @@ const Products = () => {
                     }}
                   />
                 </div>
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                  Image URL
+                </label>
+                <input
+                  type="text"
+                  value={formData.imageUrl || formData.ImageUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    background: 'var(--background)',
+                    color: 'var(--text)'
+                  }}
+                />
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>Description</label>
