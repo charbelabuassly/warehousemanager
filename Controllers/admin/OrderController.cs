@@ -104,6 +104,8 @@ namespace warehousemanager.Controllers.admin
             [FromQuery] string? q, //q can be any id, or any field such as Email, name, etc...
             [FromQuery] int? clientId,
             [FromQuery] int? deliveryPersonId,
+            [FromQuery] OrderStaus? status,
+            [FromQuery] string? statusGroup,
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to)
         {
@@ -122,6 +124,15 @@ namespace warehousemanager.Controllers.admin
                 .Include(o => o.DeliveryPerson)
                 .AsQueryable(); //Allows to keep appending conditions to the query
 
+            if (status != null)
+            {
+                query = query.Where(o => o.status == status);
+            }
+            else if (!string.IsNullOrWhiteSpace(statusGroup) && statusGroup.Equals("pending-cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(o => o.status == OrderStaus.Pending || o.status == OrderStaus.Cancelled);
+            }
+
             if (!string.IsNullOrEmpty(q))
             {
                 if (int.TryParse(q, out var id)) //checking if string can be parsed to an int
@@ -135,9 +146,9 @@ namespace warehousemanager.Controllers.admin
                         EF.Functions.Like(o.Client.Email, $"%{q}%") ||
                         EF.Functions.Like(o.Client.Fname, $"%{q}%") ||
                         EF.Functions.Like(o.Client.Lname, $"%{q}%") ||
-                        EF.Functions.Like(o.DeliveryPerson.Email, $"%{q}%") ||
-                        EF.Functions.Like(o.DeliveryPerson.Fname, $"%{q}%") ||
-                        EF.Functions.Like(o.DeliveryPerson.Lname, $"%{q}%"));
+                        (o.DeliveryPerson != null && EF.Functions.Like(o.DeliveryPerson.Email, $"%{q}%")) ||
+                        (o.DeliveryPerson != null && EF.Functions.Like(o.DeliveryPerson.Fname, $"%{q}%")) ||
+                        (o.DeliveryPerson != null && EF.Functions.Like(o.DeliveryPerson.Lname, $"%{q}%")));
                 }
             }
 

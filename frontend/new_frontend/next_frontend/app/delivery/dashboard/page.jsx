@@ -65,7 +65,18 @@ function DeliveryDashboard() {
       await fetchDeliveries();
     } catch (err) {
       console.error('Error updating delivery:', err);
-      setError(err?.response?.data?.message || err?.response?.data?.Message || 'Failed to update order.');
+      const statusCode = err?.response?.status;
+      const serverMsg = err?.response?.data?.message || err?.response?.data?.Message;
+
+      if (statusValue === ORDER_STATUS.Cancelled && statusCode === 400) {
+        // e.g. "More than one day has passed, cannot cancel anymore"
+        const msg = serverMsg || 'Cannot cancel this order.';
+        setError(msg);
+        alert(msg);
+        return;
+      }
+
+      setError(serverMsg || 'Failed to update order.');
     } finally {
       setBusyId(null);
     }
