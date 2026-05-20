@@ -61,8 +61,8 @@ export default function(){
         lastName,
         address: { street, city, country }
       };
-      console.log(endpoint)
-      console.log(payload)
+      // console.log(endpoint)
+      // console.log(payload)
       const { data } = await api.post(endpoint, payload);
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.role);

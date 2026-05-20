@@ -3,7 +3,7 @@ import { ShoppingBasket, Search, ShoppingCart, User, LogOut, ChevronDown, X } fr
 import { CartItem } from "../types";
 
 interface HeaderProps {
-  userName: string;
+  userName: String;
   cartItems: CartItem[];
   searchQuery: string;
   onSearchChange: (query: string) => void;

@@ -13,6 +13,7 @@ namespace warehousemanager.Models
         public int Quantity { get; set; }
         public int QuantitySold { get; set; } = 0;
         public DateTime LastRestockedAt { get; set; } = DateTime.UtcNow;
+        public string ImageURL { get; set; } = string.Empty;
 
         [Range(0, 100)]
         public int Discount { get; set; } = 0; //percentage discount, 100 means no discount, 80 means 20% discount, etc.

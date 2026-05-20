@@ -10,24 +10,20 @@ export type Category =
 
 export type ProductCategory = Exclude<Category, "All Products">;
 
-export interface Product {
+export type ProductDTO = {
   id: number;
   name: string;
+  description?: string;
   price: number;
-  originalPrice?: number;
-  category: ProductCategory;
-  image: string;
-  rating: number;
-  reviews: number;
-  stock: number;
-  isNew: boolean;
-  popularity: number;
-  addedDate: number;
-}
+  discount: number;
+  categoryId: number;
+  stockStatus?: string;
+  imageURL: string
+};
 
 export type UserRole = "customer" | "admin" | "delivery";
 
 export interface CartItem {
-  product: Product;
+  product: ProductDTO;
   quantity: number;
 }

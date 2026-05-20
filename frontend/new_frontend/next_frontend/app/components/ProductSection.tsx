@@ -1,6 +1,8 @@
+"use client"
+
 import { useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
-import { Product } from "../types";
+import { ProductDTO } from "../types";
 import { ProductCard } from "./ProductCard";
 
 const COLLAPSED_COUNT = 3;
@@ -10,9 +12,9 @@ interface ProductSectionProps {
   title: string;
   icon: React.ReactNode;
   accentColor: string;
-  products: Product[];
-  badgeMode?: "stock" | "new" | "none";
-  onAddToCart: (product: Product) => void;
+  products: ProductDTO[];
+  badgeMode?: "stock" | "new" | "none" | "discount";
+  onAddToCart: (product: ProductDTO) => void;
 }
 
 export function ProductSection({
@@ -111,7 +113,7 @@ export function ProductSection({
               key={product.id}
               product={product}
               onAddToCart={onAddToCart}
-              badgeMode={badgeMode}
+              badgeMode={"new"}
             />
           ))}
         </div>

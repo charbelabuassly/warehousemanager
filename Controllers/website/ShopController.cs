@@ -197,7 +197,8 @@ namespace warehousemanager.Controllers.website
                 StockStatus =
                     p.Quantity <= 0 ? "Out of Stock" :
                     p.Quantity <= 5 ? "Low Stock" :
-                    "In Stock"
+                    "In Stock",
+                ImageURL = p.ImageURL
             })
             .ToListAsync();
             
@@ -234,7 +235,8 @@ namespace warehousemanager.Controllers.website
                 StockStatus =
                     p.Quantity <= 0 ? "Out of Stock" :
                     p.Quantity <= 5 ? "Low Stock" :
-                    "In Stock"
+                    "In Stock",
+                ImageURL = p.ImageURL
             })
             .ToListAsync();
 
@@ -249,7 +251,9 @@ namespace warehousemanager.Controllers.website
             int pageNumber = page.GetValueOrDefault(1);
             if (pageNumber < 1) pageNumber = 1;
 
-            var query = _context._products.AsQueryable();
+            var query = _context._products
+                .Where(p => p.Discount > 0)
+                .AsQueryable();
 
             if (category_id != null)
             {
@@ -271,7 +275,8 @@ namespace warehousemanager.Controllers.website
                 StockStatus =
                     p.Quantity <= 0 ? "Out of Stock" :
                     p.Quantity <= 5 ? "Low Stock" :
-                    "In Stock"
+                    "In Stock",
+                ImageURL = p.ImageURL
             })
             .ToListAsync();
 
