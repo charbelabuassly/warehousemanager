@@ -25,6 +25,7 @@ namespace warehousemanager.Controllers
         }
 
         //Method used to get all profile information
+        [Authorize]
         [HttpGet(Name = "GetProfile")]
         public async Task<ActionResult<ProfileResponse>> GetProfile()
         {

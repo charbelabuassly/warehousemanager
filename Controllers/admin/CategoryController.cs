@@ -23,19 +23,18 @@ namespace warehousemanager.Controllers.admin
         }
 
         // GET: api/Category
-        [Authorize]
+        // WE NEED THIS FOR CLIENT I REMOVED AUTH SORRY
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
         {
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null) return Unauthorized(new { Message = "User not found" });
+            //var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            //var user = await _context._users.FirstOrDefaultAsync(u => u.Email == email);
+            //if (user == null) return Unauthorized(new { Message = "User not found" });
 
-            if (!_token.VerifyAdmin(user))
-            {
-                return Unauthorized(new { Message = "You are not authorized" });
-            }
-
+            //if (!_token.VerifyAdmin(user))
+            //{
+            //    return Unauthorized(new { Message = "You are not authorized" });
+            //}
             var categories = await _context._categories.AsNoTracking().ToListAsync();
             return Ok(categories);
         }
