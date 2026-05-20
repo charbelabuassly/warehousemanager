@@ -250,6 +250,9 @@ namespace warehousemanager.Controllers.website
                 query = query.Where(p => p.CategoryId == category_id);
             }
 
+            var oneWeekAgo = DateTime.UtcNow.AddDays(-7);
+            query = query.Where(p => p.LastRestockedAt >= oneWeekAgo);
+
             var totalCount = await query.CountAsync();
 
             var items = await query

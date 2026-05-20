@@ -6,13 +6,15 @@ import { ProductDTO, ProductPageResponse } from "../types";
 import { ProductCard } from "./ProductCard";
 
 const COLLAPSED_COUNT = 3;
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 9;
 
 interface ProductSectionProps {
   title: string;
   icon: React.ReactNode;
   accentColor: string;
   products: ProductPageResponse;
+  changeProducts: React.Dispatch<React.SetStateAction<ProductPageResponse>>;
+  selectedCategoryId: string;
   badgeMode?: "stock" | "new" | "none" | "discount";
   onAddToCart: (product: ProductDTO) => void;
 }
@@ -22,19 +24,16 @@ export function ProductSection({
   icon,
   accentColor,
   products,
+  changeProducts,
+  selectedCategoryId,
   badgeMode = "none",
   onAddToCart,
 }: ProductSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [page, setPage] = useState(1);
 
-  // Reset page when products change (category/search filter)
-  useEffect(() => {
-    setPage(1);
-  }, [products]);
-
   const totalPages = Math.ceil(products.totalCount / PAGE_SIZE);
-  const displayedProducts = expanded ? products.items : products.items.slice(0, 9);
+  const displayedProducts = expanded ? products.items.slice(0, 9) : products.items.slice(0, 3);
 
   const handleShowMore = () => {
     setExpanded(true);
@@ -46,10 +45,23 @@ export function ProductSection({
     setPage(1);
   };
 
-  const goToPage = (p: number) => {
-    
-    //for page number to color correctly
+  const goToPage = async (p: number) => {
+    //for page number to color correctly and also to update it for follwing stuff
     setPage(p);
+    //querying db
+    let url = "";
+    if (title === "Most Popular") {
+      url = `https://localhost:7087/api/shop/trending?page=${p}&category_id=${selectedCategoryId}`;
+    } else if (title === "Newest") {
+      url = `https://localhost:7087/api/shop/new?page=${p}&category_id=${selectedCategoryId}`;
+    } else if (title === "Discounted") {
+      url = `https://localhost:7087/api/shop/discount?page=${p}&category_id=${selectedCategoryId}`;
+    }
+
+    const res = await fetch(url);
+    const data: ProductPageResponse = await res.json();
+
+    changeProducts(data);
     // Scroll section into view smoothly
     window.scrollBy({ top: -1400, behavior: "smooth" });
   };

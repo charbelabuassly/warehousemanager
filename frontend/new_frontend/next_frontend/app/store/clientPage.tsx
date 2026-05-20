@@ -169,6 +169,8 @@ export default function clientPage(props : any){
           icon={<Search size={18} className="text-purple-600" />}
           accentColor="bg-purple-50"
           products={searchItems}
+          changeProducts={setSearchItems}
+          selectedCategoryId={selectedCategoryId}
           badgeMode="none"
           onAddToCart={handleAddToCart}
         />
@@ -178,6 +180,8 @@ export default function clientPage(props : any){
           icon={<TrendingUp size={18} className="text-amber-600" />}
           accentColor="bg-amber-50"
           products={trending}
+          changeProducts={setTrending}
+          selectedCategoryId={selectedCategoryId}
           badgeMode="none"
           onAddToCart={handleAddToCart}
         />
@@ -187,6 +191,8 @@ export default function clientPage(props : any){
           icon={<Sparkles size={18} className="text-blue-600" />}
           accentColor="bg-blue-50"
           products={newest}
+          changeProducts={setNewest}
+          selectedCategoryId={selectedCategoryId}
           badgeMode="new"
           onAddToCart={handleAddToCart}
         />
@@ -196,6 +202,8 @@ export default function clientPage(props : any){
           icon={<Percent size={18} className="text-orange-600" />}
           accentColor="bg-orange-50"
           products={discounted}
+          changeProducts={setDiscounted}
+          selectedCategoryId={selectedCategoryId}
           badgeMode="discount"
           onAddToCart={handleAddToCart}
         />
