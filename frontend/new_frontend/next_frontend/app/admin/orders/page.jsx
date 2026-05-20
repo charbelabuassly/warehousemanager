@@ -51,6 +51,12 @@ const Orders = () => {
       const params = {};
       
       if (searchQuery.trim()) params.q = searchQuery.trim();
+
+      // Keep search results scoped to the current view
+      if (view === 'assigned') params.status = 'Assigned';
+      if (view === 'delivered') params.status = 'Delivered';
+      if (view === 'pendingCancelled') params.statusGroup = 'pending-cancelled';
+
       if (searchFilters.clientId) params.clientId = searchFilters.clientId;
       if (searchFilters.deliveryPersonId) params.deliveryPersonId = searchFilters.deliveryPersonId;
       if (searchFilters.from) params.from = searchFilters.from;

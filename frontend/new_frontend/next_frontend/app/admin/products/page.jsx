@@ -141,6 +141,10 @@ const Products = () => {
     return product.productsId || product.ProductsId || product.id || product.Id;
   };
 
+  const getCategoryId = (category) => {
+    return category.categoryId || category.CategoryId || category.id || category.Id;
+  };
+
   const getProductField = (product, field) => {
     const fieldMap = {
       name: product.name || product.Name,
@@ -271,7 +275,7 @@ const Products = () => {
           >
             <option value="">All Categories</option>
             {categories.map(cat => (
-              <option key={getProductId(cat)} value={getProductId(cat)}>
+              <option key={getCategoryId(cat)} value={getCategoryId(cat)}>
                 {cat.name || cat.Name}
               </option>
             ))}
@@ -435,7 +439,10 @@ const Products = () => {
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>Category</label>
                   <select
                     value={formData.categoryId || formData.CategoryId || ''}
-                    onChange={(e) => setFormData({ ...formData, categoryId: parseInt(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setFormData({ ...formData, categoryId: v ? parseInt(v, 10) : '' });
+                    }}
                     required
                     style={{
                       width: '100%',
@@ -448,7 +455,7 @@ const Products = () => {
                   >
                     <option value="">Select Category</option>
                     {categories.map(cat => (
-                      <option key={getProductId(cat)} value={getProductId(cat)}>
+                      <option key={getCategoryId(cat)} value={getCategoryId(cat)}>
                         {cat.name || cat.Name}
                       </option>
                     ))}
