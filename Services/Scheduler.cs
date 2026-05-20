@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using warehousemanager.Data;
+using System.Linq;
 
 namespace warehousemanager.Services
 {
@@ -17,7 +18,8 @@ namespace warehousemanager.Services
         //The scheduler will check the delivery man with the least delivery count and assign the order to them
         public async Task<int> SetDeliveryMan()
         {
-            var min = await _context._orders
+            /*
+             var min = await _context._orders
                 .GroupBy(o => o.DeliveryPersonId)
                 .Select(og => new { Count = og.Count() })
                 .OrderBy(ogs => ogs.Count)
@@ -36,7 +38,7 @@ namespace warehousemanager.Services
                     DeliveryCount = og.Count()
                 }).Where(ogs => ogs.DeliveryCount == min.Count)
                 .FirstOrDefaultAsync();
-                
+
             if (user == null)
             {
                 return -1; //will be set as pending in the db, admin will resolve it
@@ -44,6 +46,17 @@ namespace warehousemanager.Services
 
             //else all is good, return delivery man id
             return user.Id;
+            */
+
+            //This is an improved version which chooses the worker with the LEAST ASSIGNED DELIVERIES
+
+            var deliveryManId = await _context._users
+                .Where(u => u.RoleId == 3 && u.IsActive == true)
+                .OrderBy(u => u.OrdersDelivery.Count(od => od.status == Models.OrderStaus.Assigned))
+                .Select(u => u.UsersId)
+                .FirstOrDefaultAsync();
+
+            return deliveryManId == 0 ? -1 : deliveryManId;
         }
     }
 }

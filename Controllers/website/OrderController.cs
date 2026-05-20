@@ -25,6 +25,7 @@ namespace warehousemanager.Controllers.website
         }
 
         // PATCH: api/Order/{orderId}/cancel
+        //Added addional fix
         [Authorize]
         [HttpPatch("{orderId}/cancel")]
         public async Task<IActionResult> CancelOrder(int orderId)
@@ -41,7 +42,7 @@ namespace warehousemanager.Controllers.website
             if (order.ClientId != user.UsersId) return Unauthorized(new { Message = "You are not authorized for this order" });
 
             if (order.status == OrderStaus.Delivered)
-                return BadRequest(new { Message = "Delivered orders cannot be cancelled" });
+                return BadRequest(new { Message = "Delivered orders cannot be cancelled, it has been dekivered" });
             if (order.status == OrderStaus.Cancelled)
                 return BadRequest(new { Message = "Order is already cancelled" });
 
@@ -110,7 +111,7 @@ namespace warehousemanager.Controllers.website
                 _context._orderItems.Add(orderItem);
             }
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(); //Only save in the end after the operation is valid
 
             return Ok(order_toMake);
         }
